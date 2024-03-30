@@ -25,3 +25,4 @@ for images in os.listdir(images_dir):
     generate_bev_image(pcl_path, vis=True)
 cv2.destroyAllWindows()
 
+

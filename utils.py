@@ -48,7 +48,11 @@ def view_image_with_labels(img_path, label_path):
             if key == ord('q'):
                 break
 
-def generate_bev_image(pcl_path, vis=True):
+def generate_bev_image(pcl_path, vis=False):
+
+    '''
+    bev image generation is adapted from the Udacity Self Driving Engineer Nanodegree course.
+    '''
     
     lidar_pcl = np.fromfile(pcl_path, dtype=np.float32).reshape(-1, 4)
 
@@ -62,7 +66,6 @@ def generate_bev_image(pcl_path, vis=True):
         (lidar_pcl[:, 2] > lim_z[0]) & (lidar_pcl[:, 2] < lim_z[1])
     )
     lidar_pcl = lidar_pcl[mask]
-    # print(lidar_pcl[:,4])
 
     lidar_pcl_cpy = np.copy(lidar_pcl)
 
@@ -74,20 +77,13 @@ def generate_bev_image(pcl_path, vis=True):
     # shift level of ground plane to avoid flipping from 0 to 255 for neighboring pixels
     lidar_pcl_cpy[:, 2] = lidar_pcl_cpy[:, 2] - configs.lim_z[0]  
  
-  
-    # print(lidar_pcl_cpy[:, 0:2])
-
     # re-arrange elements in lidar_pcl_cpy by sorting first by x, then y, then by decreasing height
     idx_height = np.lexsort((-lidar_pcl_cpy[:, 2], lidar_pcl_cpy[:, 1], lidar_pcl_cpy[:, 0]))
     
     lidar_pcl_hei = lidar_pcl_cpy[idx_height]
-    # print(lidar_pcl_hei)
     # extract all points with identical x and y such that only the top-most z-coordinate is kept (use numpy.unique)
     _, idx_height_unique, counts = np.unique(lidar_pcl_hei[:, 0:2], axis=0, return_index=True, return_counts=True)
-   
 
-
-    # print(idx_height_unique)
     lidar_pcl_hei = lidar_pcl_hei[idx_height_unique]
 
     # assign the height value of each unique entry in lidar_top_pcl to the height map and 
@@ -96,7 +92,7 @@ def generate_bev_image(pcl_path, vis=True):
     height_map[np.int_(lidar_pcl_hei[:, 0]), np.int_(lidar_pcl_hei[:, 1])] = lidar_pcl_hei[:, 2] / float(np.abs(lim_z[1] - lim_z[0]))
 
     # sort points such that in case of identical BEV grid coordinates, the points in each grid cell are arranged based on their intensity
-    # lidar_pcl_cpy[lidar_pcl_cpy[:,3]>1.0,3] = 1.0
+
     idx_intensity = np.lexsort((-lidar_pcl_cpy[:, 3], lidar_pcl_cpy[:, 1], lidar_pcl_cpy[:, 0]))
     lidar_pcl_cpy = lidar_pcl_cpy[idx_intensity]
 
@@ -114,25 +110,6 @@ def generate_bev_image(pcl_path, vis=True):
 
     normalizedCounts = np.minimum(1.0, np.log(counts + 1) / np.log(64))
     density_map[np.int_(lidar_pcl_int[:, 0]), np.int_(lidar_pcl_int[:, 1])] = normalizedCounts
-
-    # visualize intensity map
-    # if vis:
-    #     img_height = height_map * 256
-    #     img_height = img_height.astype(np.uint8)
-    #     cv2.imshow('img_height', img_height)
-    #     cv2.waitKey(1)
-
-    # if vis:
-    #     img_intensity = intensity_map * 256
-    #     img_intensity = img_intensity.astype(np.uint8)
-    #     cv2.imshow('img_intensity', img_intensity)
-    #     cv2.waitKey(1)
-
-    # if vis:
-    #     img_density = density_map * 256
-    #     img_density = img_density.astype(np.uint8)
-    #     cv2.imshow('img_density', img_density)
-    #     cv2.waitKey(1)
 
     RGB_Map = np.zeros((3, 609,609))
     RGB_Map[2, :, :] = density_map # r_map
