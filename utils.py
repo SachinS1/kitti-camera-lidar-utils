@@ -13,6 +13,7 @@ lim_x = [0.0, 50.0]
 lim_y = [-25, 25.0]
 lim_z = [-2.5, 1]
 
+kitti_classes = ['Car', 'Van' , 'Truck' , 'Pedestrian' , 'Person_sitting' , 'Cyclist' , 'Tram' ]
 
 def view_image(img_path):
 
@@ -115,14 +116,65 @@ def generate_bev_image(pcl_path, vis=False):
     RGB_Map[2, :, :] = density_map # r_map
     RGB_Map[1, :, :] = height_map  # g_map
     RGB_Map[0, :, :] = intensity_map # b_map
+    img_rgb = RGB_Map.transpose(1, 2, 0) * 256
+
+    img_rgb = img_rgb.astype(np.uint8)
    
     if vis:
-        img_rgb = RGB_Map.transpose(1, 2, 0) * 256
 
-        img_rgb = img_rgb.astype(np.uint8)
-        
         cv2.imshow('img_rgb', img_rgb)
         while True:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 break
+    return img_rgb
+
+def load_kitti_calib(calib_file):
+    """
+    load projection matrix
+    """
+    with open(calib_file) as r:
+        lines = r.readlines()
+        assert (len(lines) == 8)
+
+    obj = lines[0].strip().split(' ')[1:]
+    P0 = np.array(obj, dtype=np.float32)
+    obj = lines[1].strip().split(' ')[1:]
+    P1 = np.array(obj, dtype=np.float32)
+    obj = lines[2].strip().split(' ')[1:]
+    P2 = np.array(obj, dtype=np.float32)
+    obj = lines[3].strip().split(' ')[1:]
+    P3 = np.array(obj, dtype=np.float32)
+    obj = lines[4].strip().split(' ')[1:]
+    R0 = np.array(obj, dtype=np.float32)
+    obj = lines[5].strip().split(' ')[1:]
+    Tr_velo_to_cam = np.array(obj, dtype=np.float32)
+    obj = lines[6].strip().split(' ')[1:]
+    Tr_imu_to_velo = np.array(obj, dtype=np.float32)
+
+    return {'P2': P2.reshape(3, 4),
+            'R0': R0.reshape(3, 3),
+            'Tr_velo2cam': Tr_velo_to_cam.reshape(3, 4)}
+
+
+
+def convert_labels_to_targets(label_file, lidar_2_cam_matrix):
+    '''
+    script to convert provided kitti labels to complexyolo required labels
+    '''
+    with open(label_file, 'r') as r:
+        lines = r.readlines()
+
+    total_objects = len(lines)
+
+    for i in range(total_objects):
+        label_info = lines[i].strip().split(' ')
+        object_class = label_info[0].strip()
+
+        if object_class in kitti_classes:
+            
+            pass
+
+
+
+    # pass
